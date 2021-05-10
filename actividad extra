@@ -62,3 +62,110 @@ INNER JOIN Tareas AS T ON T.ID= COL.IDTarea
 INNER JOIN Modulos AS MO ON MO.ID= T.IDModulo
 INNER JOIN PROYECTOS AS PR ON PR.ID= MO.IDProyecto
 GROUP BY PR.Nombre
+
+--7)
+
+select col.Apellido, col.Nombre,(
+select sum(cola.Tiempo) from Tareas as t
+inner join Colaboraciones as cola on cola.IDTarea= t.ID
+inner join colaboradores as co on co.ID= cola.IDColaborador
+where year(t.FechaInicio) =2018 and co.ID= Col.ID
+) as 'h en 2018',(
+select sum(cola.Tiempo) from Tareas as t
+inner join Colaboraciones as cola on cola.IDTarea= t.ID
+inner join colaboradores as co on co.ID= cola.IDColaborador
+where year(t.FechaInicio) =2019 and co.ID= Col.ID
+) as 'h en 2019',
+(
+select sum(cola.Tiempo) from Tareas as t
+inner join Colaboraciones as cola on cola.IDTarea= t.ID
+inner join colaboradores as co on co.ID= cola.IDColaborador
+where year(t.FechaInicio) =2020 and co.ID= Col.ID
+) as 'h en 2020' from Colaboradores as col
+go
+
+
+select col.Apellido, col.Nombre, sum(cola.Tiempo) as 'h en 2018', from Tareas as t
+inner join Colaboraciones as cola on cola.IDTarea= t.ID
+inner join colaboradores as col on col.ID= cola.IDColaborador
+where year(t.FechaInicio) =2018
+group by col.Apellido, col.Nombre
+go
+
+--8)
+select col.Apellido, col.Nombre from Colaboradores as col
+where (
+select sum(c.tiempo) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2018 and c.IDColaborador= col.ID
+ )>(
+ select isnull(sum(c.tiempo),0) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2019 and c.IDColaborador= col.ID
+ )
+  and (select isnull(sum(c.tiempo),0) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2019 and c.IDColaborador= col.ID
+)>(
+select sum(c.tiempo) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2020 and c.IDColaborador= col.ID)
+go
+
+ select c.idcolaborador, sum(c.tiempo) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2018
+group by c.IDColaborador
+
+ select c.idcolaborador, sum(c.tiempo) from Colaboraciones as c
+inner join tareas as t on t.id= c.IDTarea
+where YEAR(t.fechainicio)=2019
+group by c.IDColaborador
+go
+
+--9)
+select distinct concat (cld.apellido, cld.nombre) from Colaboradores as cld
+inner join Colaboraciones as col on col.IDColaborador= cld.ID
+inner join Tareas as t on t.ID = col.IDTarea
+inner join modulos as mo on mo.ID= T.IDModulo
+inner join Proyectos as pr on pr.ID= mo.IDProyecto
+inner join Clientes as cl on cl.id= pr.idcliente
+inner join ciudades as ci on ci.ID= cl.IDCiudad
+inner join Paises as p on p.ID= ci.idpais
+where p.Nombre not like 'argentina'
+go
+
+--10)
+
+select tt.Nombre,tt.PrecioHoraBase, 
+ (
+ select avg(col.PrecioHora) from Colaboraciones as col
+ inner join Tareas as t on col.IDTarea= t.ID
+ inner join TiposTarea as tt2 on tt2.ID= t.IDTipo
+ where tt2.id= tt.ID
+ ) as 'hora real',
+ case when ( 
+	( select avg(col.PrecioHora) from Colaboraciones as col
+	inner join Tareas as t on col.IDTarea= t.ID
+	inner join TiposTarea as tt2 on tt2.ID= t.IDTipo
+	where tt2.id= tt.ID
+	)
+-tt.PrecioHoraBase ) < 500 then 'poca'
+		when  (
+		((  select avg(col.PrecioHora) from Colaboraciones as col
+			inner join Tareas as t on col.IDTarea= t.ID
+			inner join TiposTarea as tt2 on tt2.ID= t.IDTipo
+			where tt2.id= tt.ID
+			)
+			-tt.PrecioHoraBase) > 500 and 
+			(
+				( select avg(col.PrecioHora) from Colaboraciones as col
+				inner join Tareas as t on col.IDTarea= t.ID
+				inner join TiposTarea as tt2 on tt2.ID= t.IDTipo
+				where tt2.id= tt.ID)   -tt.PrecioHoraBase 
+			) <1000 ) then 'mediana'
+
+				else 'alta'
+end as 'variacion'
+ from TiposTarea as tt
+
